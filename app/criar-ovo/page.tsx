@@ -22,16 +22,16 @@ export default function CriarOvo() {
   const [visual, setVisual] = useState({ casca: 'Ao Leite 🍫', recheio: 'Ninho 🥛', estilo: 'Laço Simples 🎀' })
   const [ingredientes, setIngredientes] = useState<any[]>([])
   const [selecionados, setSelecionados] = useState<any[]>([])
-  const [margem, setMargem] = useState(100)
+  const [precoVenda, setPrecoVenda] = useState(0)
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
     supabase.from('ingredientes').select('*').then(({ data }) => setIngredientes(data || []))
   }, [])
 
-  const custoTotal   = selecionados.reduce((a, c) => a + (c.preco || 0), 0)
-  const precoSugerido = custoTotal * (1 + margem / 100)
-  const lucroEstimado = precoSugerido - custoTotal
+  const custoTotal = selecionados.reduce((a, c) => a + (c.preco || 0), 0)
+  const lucroEstimado = precoVenda - custoTotal
+  const margemLucro = custoTotal > 0 ? (lucroEstimado / custoTotal) * 100 : 0
 
   const adicionarIngrediente = () =>
     setSelecionados([...selecionados, { ingrediente_id: '', quantidade: 0, preco: 0 }])
@@ -46,14 +46,24 @@ export default function CriarOvo() {
   }
 
   async function finalizar() {
+    if (precoVenda <= 0) {
+      alert('Por favor, defina um preço de venda para o ovo.')
+      return
+    }
+    
     setSalvando(true)
     const customString = `Casca: ${visual.casca} | Recheio: ${visual.recheio} | Estilo: ${visual.estilo}`
     const { data: ovo, error } = await supabase
       .from('ovos')
-      .insert([{ nome, customizacao: customString, preco_venda: precoSugerido }])
+      .insert([{ nome, customizacao: customString, preco_venda: precoVenda }])
       .select()
       .single()
-    if (error || !ovo) { alert('Erro ao criar ovo'); setSalvando(false); return }
+      
+    if (error || !ovo) { 
+      alert('Erro ao criar ovo')
+      setSalvando(false)
+      return 
+    }
 
     const itens = selecionados.map(s => ({
       ovo_id: ovo.id,
@@ -61,6 +71,7 @@ export default function CriarOvo() {
       quantidade: s.quantidade,
       preco_pago: s.preco,
     }))
+    
     await supabase.from('itens_ovo').insert(itens)
     router.push('/')
   }
@@ -218,7 +229,7 @@ export default function CriarOvo() {
       {etapa === 3 && (
         <section key="e3" className="animate-fade-up" style={{ animationFillMode: 'both' }}>
 
-          {/* Card de inteligência de preço */}
+          {/* Card de definição de preço */}
           <div
             className="rounded-3xl p-6 mb-6 relative overflow-hidden"
             style={{ background: 'var(--grad-warm)', color: 'var(--egg-cream)' }}
@@ -227,32 +238,50 @@ export default function CriarOvo() {
               className="absolute -top-4 -right-4 text-8xl opacity-10 select-none pointer-events-none"
               aria-hidden
             >💰</span>
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-4">
               <div>
-                <p className="section-label mb-1" style={{ color: 'rgba(255,248,238,0.5)' }}>Preço Sugerido</p>
-                <p className="stat-number text-3xl" style={{ color: '#6EE7A0' }}>
-                  R$ {precoSugerido.toFixed(2)}
-                </p>
-                <p className="text-xs mt-1" style={{ color: 'rgba(255,248,238,0.55)' }}>
-                  Custo: R$ {custoTotal.toFixed(2)} · Lucro: R$ {lucroEstimado.toFixed(2)}
+                <p className="section-label mb-1" style={{ color: 'rgba(255,248,238,0.5)' }}>Custo Total</p>
+                <p className="stat-number text-2xl" style={{ color: '#6EE7A0' }}>
+                  R$ {custoTotal.toFixed(2)}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="section-label mb-2" style={{ color: 'rgba(255,248,238,0.5)' }}>Margem de Lucro</p>
+              
+              <div>
+                <p className="section-label mb-2" style={{ color: 'rgba(255,248,238,0.5)' }}>Preço de Venda</p>
                 <div
-                  className="flex items-center gap-1 rounded-full px-3 py-1.5"
+                  className="flex items-center gap-2 rounded-full px-4 py-3"
                   style={{ background: 'rgba(0,0,0,0.25)' }}
                 >
+                  <span className="font-bold text-lg" style={{ color: 'var(--egg-gold-lt)' }}>R$</span>
                   <input
                     type="number"
-                    value={margem}
-                    onChange={e => setMargem(Number(e.target.value))}
-                    className="w-14 bg-transparent border-none text-center font-black text-lg p-0 focus:outline-none"
+                    step="0.01"
+                    min="0"
+                    value={precoVenda}
+                    onChange={e => setPrecoVenda(Number(e.target.value))}
+                    className="flex-1 bg-transparent border-none text-center font-black text-xl p-0 focus:outline-none"
                     style={{ color: 'var(--egg-gold-lt)' }}
+                    placeholder="0.00"
                   />
-                  <span className="font-bold text-sm" style={{ color: 'var(--egg-gold-lt)' }}>%</span>
                 </div>
               </div>
+              
+              {custoTotal > 0 && precoVenda > 0 && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <p className="text-[10px] font-medium" style={{ color: 'rgba(255,248,238,0.5)' }}>Lucro por unidade</p>
+                    <p className="text-lg font-bold" style={{ color: '#6EE7A0' }}>
+                      R$ {lucroEstimado.toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium" style={{ color: 'rgba(255,248,238,0.5)' }}>Margem de lucro</p>
+                    <p className="text-lg font-bold" style={{ color: '#F5C842' }}>
+                      {margemLucro.toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -306,6 +335,7 @@ export default function CriarOvo() {
                       <p className="section-label mb-1">Custo (R$)</p>
                       <input
                         type="number"
+                        step="0.01"
                         placeholder="0.00"
                         className="input-egg text-sm"
                         style={{ padding: '10px 14px', color: '#059669' }}
@@ -331,18 +361,25 @@ export default function CriarOvo() {
             <button onClick={() => setEtapa(2)} className="btn-ghost flex-1">← Voltar</button>
             <button
               onClick={finalizar}
-              disabled={salvando}
+              disabled={salvando || precoVenda <= 0}
               className="flex-[2] rounded-full py-4 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               style={{
-                background: '#1D4B2E',
+                background: precoVenda <= 0 ? '#9CA3AF' : '#1D4B2E',
                 color: '#6EE7A0',
                 boxShadow: '0 8px 24px rgba(29,75,46,0.3)',
                 opacity: salvando ? 0.6 : 1,
+                cursor: precoVenda <= 0 ? 'not-allowed' : 'pointer',
               }}
             >
               {salvando ? 'Salvando...' : '✨ Salvar Receita'}
             </button>
           </div>
+          
+          {precoVenda <= 0 && (
+            <p className="text-xs text-center mt-3" style={{ color: '#DC2626' }}>
+              ⚠️ Defina um preço de venda antes de salvar
+            </p>
+          )}
         </section>
       )}
 
