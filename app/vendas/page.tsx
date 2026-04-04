@@ -9,6 +9,7 @@ export default function Vendas() {
   const [modal,    setModal]    = useState<any>(null)   // ovo selecionado para vender
   const [qtd,      setQtd]      = useState(1)
   const [salvando, setSalvando] = useState(false)
+  const [resetModal, setResetModal] = useState(false)
 
   async function fetchData() {
     setLoading(true)
@@ -42,6 +43,20 @@ export default function Vendas() {
     setSalvando(false)
   }
 
+  async function resetarVendas() {
+    setSalvando(true)
+    const { error } = await supabase.from('vendas_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    
+    if (!error) {
+      setResetModal(false)
+      fetchData()
+      alert('✅ Todas as vendas foram resetadas com sucesso!')
+    } else {
+      alert('❌ Erro ao resetar vendas.')
+    }
+    setSalvando(false)
+  }
+
   // ── Métricas ──
   const receitaReal  = vendas.reduce((a, v) => a + v.receita_total, 0)
   const totalVendidos = vendas.reduce((a, v) => a + v.quantidade, 0)
@@ -57,18 +72,35 @@ export default function Vendas() {
     .sort((a: any, b: any) => b.qtd - a.qtd)
 
   return (
-    <div className="max-w-xl mx-auto px-5 pt-8 pb-24">
-      {/* pb-24 adicionado para dar espaço no final da página e não ficar atrás do menu */}
+    <div className="max-w-xl mx-auto px-5 pt-8 pb-32">
 
       {/* ── Header ── */}
       <header className="mb-8 animate-fade-up" style={{ animationFillMode: 'both' }}>
-        <p className="section-label mb-1">histórico de vendas</p>
-        <h1 className="font-display text-4xl font-black italic" style={{ color: 'var(--egg-choco)' }}>
-          Vendas
-        </h1>
-        <p className="text-sm font-medium mt-1" style={{ color: 'var(--egg-muted)' }}>
-          Registre e acompanhe o que foi vendido
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="section-label mb-1">histórico de vendas</p>
+            <h1 className="font-display text-4xl font-black italic" style={{ color: 'var(--egg-choco)' }}>
+              Vendas
+            </h1>
+            <p className="text-sm font-medium mt-1" style={{ color: 'var(--egg-muted)' }}>
+              Registre e acompanhe o que foi vendido
+            </p>
+          </div>
+          
+          {vendas.length > 0 && (
+            <button
+              onClick={() => setResetModal(true)}
+              className="px-3 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all"
+              style={{
+                background: '#DC2626',
+                color: '#fff',
+                boxShadow: '0 4px 12px rgba(220,38,38,0.2)',
+              }}
+            >
+              🗑️ Resetar
+            </button>
+          )}
+        </div>
       </header>
 
       {/* ── Stats ── */}
@@ -133,8 +165,6 @@ export default function Vendas() {
         ) : (
           <div className="space-y-2">
             {ovos.map((ovo, i) => {
-              const custo = ovo.itens_ovo?.reduce((a: number, c: any) => a + c.preco_pago, 0) || 0
-              // Quantos desse ovo já foram vendidos
               const jaVendidos = vendas
                 .filter(v => v.ovo_id === ovo.id)
                 .reduce((a, v) => a + v.quantidade, 0)
@@ -216,58 +246,60 @@ export default function Vendas() {
       )}
 
       {/* ══════════════════════════════════════ */}
-      {/* MODAL de registro de venda            */}
+      {/* MODAL SIMPLIFICADO - registro de venda */}
       {/* ══════════════════════════════════════ */}
       {modal && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ background: 'rgba(44,24,16,0.5)', backdropFilter: 'blur(8px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setModal(null) }}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl p-8 animate-fade-up"
-            style={{ background: '#fff', animationFillMode: 'both', marginBottom: 'auto', marginTop: 'auto' }}
-          >
-            {/* Ovo e nome */}
-            <div className="text-center mb-6">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 animate-float"
-                style={{ background: 'var(--egg-blush)' }}
-              >🥚</div>
-              <p className="section-label mb-1">registrar venda</p>
-              <h3 className="font-display font-bold text-xl italic" style={{ color: 'var(--egg-choco)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Fundo escuro */}
+          <div 
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setModal(null)}
+          />
+          
+          {/* Modal content - mais simples e sem travar */}
+          <div className="relative bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <div className="text-center mb-5">
+              <div className="text-5xl mb-2">🥚</div>
+              <h3 className="text-xl font-bold mb-1" style={{ color: 'var(--egg-choco)' }}>
                 {modal.nome}
               </h3>
-              <p className="text-sm mt-1" style={{ color: 'var(--egg-muted)' }}>
+              <p className="text-sm" style={{ color: 'var(--egg-muted)' }}>
                 R$ {modal.preco_venda?.toFixed(2)} por unidade
               </p>
             </div>
 
-            {/* Contador */}
-            <div className="flex items-center justify-center gap-6 mb-6">
+            {/* Contador simplificado */}
+            <div className="flex items-center justify-between gap-4 mb-5">
               <button
                 onClick={() => setQtd(q => Math.max(1, q - 1))}
-                className="w-12 h-12 rounded-full font-black text-xl flex items-center justify-center transition-all"
-                style={{ background: 'var(--egg-cream)', color: 'var(--egg-choco)' }}
-              >−</button>
-              <div className="text-center">
-                <p className="stat-number text-4xl" style={{ color: 'var(--egg-choco)' }}>{qtd}</p>
-                <p className="section-label">unidades</p>
+                className="w-14 h-14 rounded-full text-2xl font-bold bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                −
+              </button>
+              
+              <div className="flex-1 text-center">
+                <div className="text-5xl font-bold mb-1" style={{ color: 'var(--egg-choco)' }}>
+                  {qtd}
+                </div>
+                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--egg-muted)' }}>
+                  unidades
+                </p>
               </div>
+              
               <button
                 onClick={() => setQtd(q => q + 1)}
-                className="w-12 h-12 rounded-full font-black text-xl flex items-center justify-center transition-all"
-                style={{ background: 'var(--egg-cream)', color: 'var(--egg-choco)' }}
-              >+</button>
+                className="w-14 h-14 rounded-full text-2xl font-bold bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                +
+              </button>
             </div>
 
             {/* Total */}
-            <div
-              className="rounded-2xl p-4 text-center mb-6"
-              style={{ background: 'var(--egg-cream)' }}
-            >
-              <p className="section-label mb-1">receita desta venda</p>
-              <p className="stat-number text-2xl" style={{ color: '#059669' }}>
+            <div className="bg-amber-50 rounded-xl p-4 text-center mb-5">
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--egg-muted)' }}>
+                Total da venda
+              </p>
+              <p className="text-3xl font-bold text-emerald-600">
                 R$ {(modal.preco_venda * qtd).toFixed(2)}
               </p>
             </div>
@@ -276,20 +308,65 @@ export default function Vendas() {
             <div className="flex gap-3">
               <button
                 onClick={() => setModal(null)}
-                className="btn-ghost flex-1 text-xs"
-              >Cancelar</button>
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                Cancelar
+              </button>
               <button
                 onClick={registrarVenda}
                 disabled={salvando}
-                className="flex-[2] py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all"
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all"
                 style={{
-                  background: '#1D4B2E',
-                  color:      '#6EE7A0',
-                  boxShadow:  '0 8px 24px rgba(29,75,46,0.3)',
-                  opacity:    salvando ? 0.6 : 1,
+                  background: salvando ? '#9CA3AF' : '#1D4B2E',
                 }}
               >
-                {salvando ? 'Salvando...' : '✓ Confirmar Venda'}
+                {salvando ? 'Salvando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════ */}
+      {/* MODAL de confirmação de reset         */}
+      {/* ══════════════════════════════════════ */}
+      {resetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setResetModal(false)}
+          />
+          
+          <div className="relative bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+            <div className="text-center mb-5">
+              <div className="text-6xl mb-3">⚠️</div>
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--egg-choco)' }}>
+                Resetar todas as vendas?
+              </h3>
+              <p className="text-sm mb-2" style={{ color: 'var(--egg-muted)' }}>
+                Isso vai apagar TODO o histórico de vendas.
+              </p>
+              <p className="text-xs font-bold text-red-600">
+                Esta ação não pode ser desfeita!
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setResetModal(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={resetarVendas}
+                disabled={salvando}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all"
+                style={{
+                  background: salvando ? '#9CA3AF' : '#DC2626',
+                }}
+              >
+                {salvando ? 'Resetando...' : 'Resetar'}
               </button>
             </div>
           </div>
