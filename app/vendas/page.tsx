@@ -219,12 +219,12 @@ export default function Vendas() {
       {/* ══════════════════════════════════════ */}
       {modal && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
           style={{ background: 'rgba(44,24,16,0.5)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setModal(null) }}
         >
           <div
-            className="w-full max-w-sm rounded-3xl p-8 animate-fade-up"
+            className="w-full max-w-sm rounded-3xl p-8 animate-fade-up my-auto"
             style={{ background: '#fff', animationFillMode: 'both' }}
           >
             {/* Ovo e nome */}
