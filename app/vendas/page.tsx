@@ -57,7 +57,8 @@ export default function Vendas() {
     .sort((a: any, b: any) => b.qtd - a.qtd)
 
   return (
-    <div className="max-w-xl mx-auto px-5 pt-8 pb-8">
+    <div className="max-w-xl mx-auto px-5 pt-8 pb-24">
+      {/* pb-24 adicionado para dar espaço no final da página e não ficar atrás do menu */}
 
       {/* ── Header ── */}
       <header className="mb-8 animate-fade-up" style={{ animationFillMode: 'both' }}>
@@ -219,13 +220,13 @@ export default function Vendas() {
       {/* ══════════════════════════════════════ */}
       {modal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: 'rgba(44,24,16,0.5)', backdropFilter: 'blur(8px)' }}
           onClick={e => { if (e.target === e.currentTarget) setModal(null) }}
         >
           <div
-            className="w-full max-w-sm rounded-3xl p-8 animate-fade-up my-auto"
-            style={{ background: '#fff', animationFillMode: 'both' }}
+            className="w-full max-w-sm rounded-3xl p-8 animate-fade-up"
+            style={{ background: '#fff', animationFillMode: 'both', marginBottom: 'auto', marginTop: 'auto' }}
           >
             {/* Ovo e nome */}
             <div className="text-center mb-6">
